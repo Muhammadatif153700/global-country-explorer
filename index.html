@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Explorer & Travel Weather Planner</title>
+    
+    <!-- SEO and Meta Tags -->
+    <meta name="description" content="A premium global country explorer integrated with live weather forecasts, comparison dashboards, interactive charts, and maps. Built with REST Countries and Open-Meteo APIs.">
+    <meta name="keywords" content="country explorer, weather planner, open-meteo, rest countries, comparison, travel dashboard">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    
+    <!-- Custom Style Sheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Top Decorative Gradient Glows -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <!-- Main Wrapper -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-earth-americas"></i>
+                </div>
+                <div>
+                    <h1 class="app-title">TerraPulse</h1>
+                    <p class="app-subtitle">Global Country Explorer & Travel Weather Planner</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <!-- Testing Panel Toggle Button -->
+                <button id="testing-panel-btn" class="btn btn-secondary btn-icon-text" title="API Simulation Controller">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Simulation Panel</span>
+                </button>
+                
+                <!-- Theme Switcher -->
+                <button id="theme-toggle" class="btn btn-icon" aria-label="Toggle Theme">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Simulation / Testing Control Panel (Collapsible) -->
+        <section id="simulation-panel" class="simulation-card hidden">
+            <div class="sim-header">
+                <h3><i class="fa-solid fa-flask"></i> Technical Assessment Simulation Panel</h3>
+                <button id="close-sim-btn" class="btn btn-icon-small"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="sim-description">
+                Use these toggles to mock standard network edge cases like slow connections (timeouts) or server failures for both the Countries and Weather APIs.
+            </p>
+            <div class="sim-controls">
+                <div class="sim-control-group">
+                    <label class="switch-container">
+                        <input type="checkbox" id="sim-slow-connection">
+                        <span class="slider"></span>
+                        <span class="control-label">Force Slow Connection (5s delay, triggers timeout)</span>
+                    </label>
+                </div>
+                <div class="sim-control-group">
+                    <label class="switch-container">
+                        <input type="checkbox" id="sim-server-error">
+                        <span class="slider"></span>
+                        <span class="control-label">Force Server Error (HTTP 500 failure)</span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Global Toast Alert (For warnings/errors) -->
+        <div id="toast-notification" class="toast hidden">
+            <div class="toast-content">
+                <i class="fa-solid fa-circle-exclamation toast-icon"></i>
+                <span id="toast-message">Notification Message</span>
+            </div>
+            <button id="close-toast-btn" class="toast-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- Filter & Search Toolbar -->
+        <section class="toolbar-section">
+            <div class="search-bar-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search countries by name, capital, or code..." autocomplete="off">
+                <button id="clear-search-btn" class="clear-input-btn hidden"><i class="fa-solid fa-circle-xmark"></i></button>
+            </div>
+            
+            <div class="filter-controls">
+                <!-- Region Filter -->
+                <div class="select-wrapper">
+                    <i class="fa-solid fa-filter select-icon"></i>
+                    <select id="region-filter">
+                        <option value="all">All Regions</option>
+                        <option value="africa">Africa</option>
+                        <option value="americas">Americas</option>
+                        <option value="asia">Asia</option>
+                        <option value="europe">Europe</option>
+                        <option value="oceania">Oceania</option>
+                    </select>
+                </div>
+
+                <!-- Sort Control -->
+                <div class="select-wrapper">
+                    <i class="fa-solid fa-arrow-down-up-wide select-icon"></i>
+                    <select id="sort-control">
+                        <option value="default">Sort by: Relevance</option>
+                        <option value="name-asc">Name (A → Z)</option>
+                        <option value="name-desc">Name (Z → A)</option>
+                        <option value="pop-desc">Population (High → Low)</option>
+                        <option value="pop-asc">Population (Low → High)</option>
+                        <option value="area-desc">Area (Large → Small)</option>
+                        <option value="area-asc">Area (Small → Large)</option>
+                    </select>
+                </div>
+                
+                <!-- Reset Button -->
+                <button id="reset-filters-btn" class="btn btn-secondary" title="Reset Filters">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Reset</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Stats Overview Banner (Dynamic summary of loaded states) -->
+        <div id="stats-banner" class="stats-banner hidden">
+            <span id="stats-text">Showing 0 countries</span>
+        </div>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Skeleton Loading State -->
+            <div id="cards-skeleton" class="skeleton-grid hidden">
+                <!-- 8 Dummy skeletons -->
+                <div class="skeleton-card">
+                    <div class="skeleton-media"></div>
+                    <div class="skeleton-info">
+                        <div class="skeleton-line title"></div>
+                        <div class="skeleton-line detail"></div>
+                        <div class="skeleton-line detail"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton-media"></div>
+                    <div class="skeleton-info">
+                        <div class="skeleton-line title"></div>
+                        <div class="skeleton-line detail"></div>
+                        <div class="skeleton-line detail"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton-media"></div>
+                    <div class="skeleton-info">
+                        <div class="skeleton-line title"></div>
+                        <div class="skeleton-line detail"></div>
+                        <div class="skeleton-line detail"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton-media"></div>
+                    <div class="skeleton-info">
+                        <div class="skeleton-line title"></div>
+                        <div class="skeleton-line detail"></div>
+                        <div class="skeleton-line detail"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error State Panel -->
+            <div id="error-panel" class="error-panel-card hidden">
+                <div class="error-icon-wrapper">
+                    <i class="fa-solid fa-cloud-bolt-rain"></i>
+                </div>
+                <h2 id="error-title">Unable to Connect</h2>
+                <p id="error-message">We couldn't retrieve the global countries list. The server might be offline or your connection is slow.</p>
+                <div class="error-actions">
+                    <button id="retry-btn" class="btn btn-primary">
+                        <i class="fa-solid fa-arrows-rotate"></i> Try Again
+                    </button>
+                    <button id="emergency-local-btn" class="btn btn-secondary">
+                        <i class="fa-solid fa-database"></i> Use Local Offline Data
+                    </button>
+                </div>
+            </div>
+
+            <!-- No Results Card -->
+            <div id="no-results-panel" class="no-results-card hidden">
+                <i class="fa-solid fa-face-frown"></i>
+                <h3>No Matching Countries Found</h3>
+                <p>Try refining your search terms, adjusting filters, or clearing spelling anomalies.</p>
+                <button id="clear-filters-link" class="btn-link">Clear all search and filters</button>
+            </div>
+
+            <!-- Country Grid Container -->
+            <div id="country-grid" class="country-grid">
+                <!-- Inject Country Cards programmatically -->
+            </div>
+        </main>
+
+        <!-- Floating Comparison Tray (Appears at bottom if >= 1 country checked) -->
+        <div id="comparison-tray" class="comparison-tray hidden">
+            <div class="tray-content">
+                <div class="tray-info">
+                    <i class="fa-solid fa-scale-balanced tray-main-icon"></i>
+                    <div>
+                        <h4 class="tray-title">Compare Panel</h4>
+                        <p id="tray-count-text" class="tray-count">0 of 3 countries selected</p>
+                    </div>
+                </div>
+                <div id="tray-selected-countries" class="tray-chips">
+                    <!-- Chip elements with country flags -->
+                </div>
+                <div class="tray-actions">
+                    <button id="tray-compare-btn" class="btn btn-accent" disabled>
+                        <i class="fa-solid fa-code-compare"></i> Compare Side-by-Side
+                    </button>
+                    <button id="tray-clear-btn" class="btn btn-secondary-outline">
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>TerraPulse &copy; 2026. Technical Assessment Public API Consumer project.</p>
+            <p class="api-attribution">
+                Data dynamically retrieved keyless from <a href="https://restcountries.com/" target="_blank" rel="noopener">REST Countries</a> and <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo API</a>.
+            </p>
+        </footer>
+    </div>
+
+    <!-- Country Detail Modal Overlay -->
+    <div id="detail-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-container">
+            <button id="close-detail-modal" class="modal-close-btn" aria-label="Close details">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <div class="modal-scroll-body">
+                <!-- Skeleton loader inside Modal -->
+                <div id="modal-skeleton" class="modal-skeleton-wrapper">
+                    <div class="skeleton-header"></div>
+                    <div class="skeleton-grid-body">
+                        <div class="skeleton-panel"></div>
+                        <div class="skeleton-panel large"></div>
+                    </div>
+                </div>
+
+                <!-- Modal Main Content (Injected by JS) -->
+                <div id="modal-real-content" class="modal-real-content hidden">
+                    <!-- Dynamic Header with Flag -->
+                    <div class="modal-header-hero">
+                        <div class="flag-hero-container">
+                            <img id="m-flag" src="" alt="Country Flag" class="modal-hero-flag">
+                            <div class="flag-shadow"></div>
+                        </div>
+                        <div class="modal-header-meta">
+                            <div class="tag-row">
+                                <span id="m-region-tag" class="region-badge">Europe</span>
+                                <span id="m-subregion-tag" class="subregion-badge">Western Europe</span>
+                            </div>
+                            <h2 id="m-country-name">Country Name</h2>
+                            <p id="m-native-name" class="native-name">Native Name: -</p>
+                        </div>
+                    </div>
+
+                    <!-- Split Panel Details -->
+                    <div class="modal-details-grid">
+                        
+                        <!-- Left Details Card (Demographics & Geography) -->
+                        <div class="detail-card glass-panel">
+                            <h3><i class="fa-solid fa-circle-info"></i> Geographic & Demographic Details</h3>
+                            <ul class="detail-list">
+                                <li>
+                                    <span class="lbl"><i class="fa-solid fa-landmark"></i> Capital</span>
+                                    <span id="m-capital" class="val">-</span>
+                                </li>
+                                <li>
+                                    <span class="lbl"><i class="fa-solid fa-users"></i> Population</span>
+                                    <span id="m-population" class="val">-</span>
+                                </li>
+                                <li>
+                                    <span class="lbl"><i class="fa-solid fa-expand"></i> Total Area</span>
+                                    <span id="m-area" class="val">-</span>
+                                </li>
+                                <li>
+                                    <span class="lbl"><i class="fa-solid fa-comments"></i> Languages</span>
+                                    <span id="m-languages" class="val">-</span>
+                                </li>
+                                <li>
+                                    <span class="lbl"><i class="fa-solid fa-coins"></i> Currency</span>
+                                    <span id="m-currency" class="val">-</span>
+                                </li>
+                                <li>
+                                    <span class="lbl"><i class="fa-solid fa-clock"></i> Timezones</span>
+                                    <span id="m-timezones" class="val">-</span>
+                                </li>
+                                <li>
+                                    <span class="lbl"><i class="fa-solid fa-link-slash"></i> Borders</span>
+                                    <span id="m-borders" class="val">-</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Right Panel Card (Capital City Live Weather and Map) -->
+                        <div class="detail-card glass-panel">
+                            <h3><i class="fa-solid fa-cloud-sun-rain"></i> Live Weather & Travel Forecast</h3>
+                            
+                            <!-- Weather Loading / Error State -->
+                            <div id="weather-skeleton" class="weather-spinner-wrapper hidden">
+                                <div class="weather-spinner"></div>
+                                <p>Checking live weather systems...</p>
+                            </div>
+
+                            <div id="weather-error" class="weather-error-card hidden">
+                                <i class="fa-solid fa-cloud-bolt"></i>
+                                <span>Weather API currently offline or slow</span>
+                                <button id="weather-retry-btn" class="btn btn-secondary-outline btn-small">Retry Weather</button>
+                            </div>
+
+                            <!-- Real Weather Content -->
+                            <div id="weather-content" class="weather-data-content">
+                                <div class="weather-current-widget">
+                                    <div class="weather-main-row">
+                                        <div class="weather-temp-block">
+                                            <span id="w-temp" class="weather-temp">24°C</span>
+                                            <span id="w-desc" class="weather-desc">Partly Cloudy</span>
+                                        </div>
+                                        <div id="w-icon" class="weather-illustration">
+                                            <i class="fa-solid fa-cloud-sun"></i>
+                                        </div>
+                                    </div>
+                                    <div class="weather-details-row">
+                                        <div class="w-stat">
+                                            <span class="w-lbl"><i class="fa-solid fa-wind"></i> Wind</span>
+                                            <span id="w-wind" class="w-val">12 km/h</span>
+                                        </div>
+                                        <div class="w-stat">
+                                            <span class="w-lbl"><i class="fa-solid fa-compass"></i> Coordinates</span>
+                                            <span id="w-coords" class="w-val">48.8, 2.3</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 7-Day Forecast Chart -->
+                                <div class="forecast-chart-container">
+                                    <h4>7-Day Temperature Trend</h4>
+                                    <div class="chart-canvas-wrapper">
+                                        <canvas id="forecastChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Capital Map Section -->
+                    <div class="map-section glass-panel">
+                        <h3><i class="fa-solid fa-map-location-dot"></i> Geolocation Map</h3>
+                        <div id="map-container" class="map-frame"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Modal Overlay -->
+    <div id="compare-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-container compare-modal-container">
+            <button id="close-compare-modal" class="modal-close-btn" aria-label="Close comparison">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <div class="modal-scroll-body">
+                <div class="compare-header">
+                    <h2><i class="fa-solid fa-scale-balanced"></i> Country Comparison Dashboard</h2>
+                    <p>Comparative structural breakdown and live capital weather forecasts.</p>
+                </div>
+
+                <!-- Comparison Table Wrapper -->
+                <div class="comparison-table-wrapper glass-panel">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr id="c-row-header">
+                                <th>Specification</th>
+                                <!-- Country Flag headers dynamic -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr id="c-row-flag" class="row-align-center">
+                                <td>Flag</td>
+                                <!-- Flags dynamic -->
+                            </tr>
+                            <tr id="c-row-name">
+                                <td>Official Name</td>
+                                <!-- Dynamic -->
+                            </tr>
+                            <tr id="c-row-capital">
+                                <td>Capital City</td>
+                                <!-- Dynamic -->
+                            </tr>
+                            <tr id="c-row-population">
+                                <td>Population</td>
+                                <!-- Dynamic -->
+                            </tr>
+                            <tr id="c-row-area">
+                                <td>Land Area</td>
+                                <!-- Dynamic -->
+                            </tr>
+                            <tr id="c-row-region">
+                                <td>Region / Subregion</td>
+                                <!-- Dynamic -->
+                            </tr>
+                            <tr id="c-row-languages">
+                                <td>Languages</td>
+                                <!-- Dynamic -->
+                            </tr>
+                            <tr id="c-row-currencies">
+                                <td>Currencies</td>
+                                <!-- Dynamic -->
+                            </tr>
+                            <tr id="c-row-timezones">
+                                <td>Timezones</td>
+                                <!-- Dynamic -->
+                            </tr>
+                            <tr id="c-row-borders">
+                                <td>Shared Borders</td>
+                                <!-- Dynamic -->
+                            </tr>
+                            <!-- Live weather parameters row -->
+                            <tr id="c-row-weather" class="weather-row-style">
+                                <td>Capital Weather (Live)</td>
+                                <!-- Dynamic live weather cards -->
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS Library (CDN) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Chart.js Library (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom App Script -->
+    <script src="app.js"></script>
+</body>
+</html>
