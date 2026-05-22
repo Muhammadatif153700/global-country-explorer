@@ -1,0 +1,11 @@
+🌍 TerraPulse — Global Country Explorer & Travel Weather Planner
+
+TerraPulse is a premium single-page application designed as a global country explorer combined with a live travel weather planner. It is built entirely on two keyless public APIs: REST Countries API for country-level data such as population, geography, languages, and currencies, and Open-Meteo API for real-time weather forecasts and 7-day temperature trends. The project requires no API keys, no sign-ups, and no environment configuration—users can simply open and run it instantly.
+
+The application provides a rich set of features including real-time search by country name, capital, or ISO code, filtering by region, and sorting by name, population, or land area. It also supports a side-by-side comparison system for up to three countries, along with live capital city weather information and interactive 7-day charts powered by Chart.js. Each country includes an interactive map using Leaflet.js, allowing users to visually explore geographic locations. The UI also includes skeleton loaders, error handling screens, and a no-results state for a smooth user experience.
+
+To enhance testing and reliability, TerraPulse includes a built-in simulation panel that allows developers to trigger slow network conditions and server errors, helping validate timeout handling and fallback behavior. The application also supports a dark and light theme toggle with persistent user preference saved in localStorage, and it is fully responsive across mobile, tablet, and desktop devices.
+
+The project can be run in multiple ways. The recommended method is using Python’s built-in HTTP server by navigating to the project folder and running python -m http.server 3000, then opening http://localhost:3000 in a browser. Alternatively, Node.js users can run it using npx serve or npx http-server. As a last option, the index.html file can be opened directly, although some browsers may restrict API requests in file mode.
+
+The system is designed to handle edge cases gracefully using abort-based request timeouts, resilient error handling with fallback offline data, and robust comparison logic using Promise.allSettled to prevent partial failures. Overall, TerraPulse is a fully functional, API-driven dashboard demonstrating modern JavaScript practices without relying on any frameworks or backend services.
